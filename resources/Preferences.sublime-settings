@@ -1,0 +1,16 @@
+// Settings in here override those in "Default/Preferences.sublime-settings",
+// and are overridden in turn by syntax-specific settings.
+{
+    // colors used within the text area
+    "color_scheme": "Packages/Color Scheme - Default/Monokai.tmTheme",
+    // Sublime Text's UI (buttons, tabs, scroll bars, etc)
+    "theme": "Default.sublime-theme",
+	"font_size": 12,
+    "rulers": [80, 100],
+    "fade_fold_buttons": false,
+    "translate_tabs_to_spaces": true,
+    "detect_indentation": false,
+    "draw_minimap_border": true,
+    "auto_complete": false,
+	
+}

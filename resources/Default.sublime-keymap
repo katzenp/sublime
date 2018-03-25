@@ -1,0 +1,6 @@
+[
+   { "keys": ["ctrl+enter"], "command": "pydoc" },
+   { "keys": ["ctrl+4"], "command": "commentf",  "args": {"style": "line", "symbol": "-", "align": "<"} },
+   { "keys": ["ctrl+5"], "command": "commentf",  "args": {"style": "block", "symbol": "=", "align": "<"} },
+   { "keys": ["ctrl+6"], "command": "commentf",  "args": {"style": "block", "symbol": "-", "align": "<"} },
+]
