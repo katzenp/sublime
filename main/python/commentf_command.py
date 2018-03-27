@@ -1,3 +1,9 @@
+"""
+commentf_command.py
+
+Description:
+    tools and utilities for generating comment lines/blocks
+"""
 # python libraries
 import os
 import re
