@@ -5,33 +5,50 @@ Description:
     tools and utilities for generating comment lines/blocks
 """
 # Python standard libraries
-import os
 import re
 
 # Sublime libraries
-import sublime
 import sublime_plugin
 
 
+# ==============================================================================
+# constants/globals
+# ==============================================================================
 __VERSION__ = '1.0.1'
+
 LINE = "{indent}{commenter} {text:{fill}{align}{width}}"
+BLOCK = "{header}\n{text}{header}"
 INDENT_PATTERN = "^(\s*)"
+COMMENTERS = {
+    "json": "//",
+    "html": "<!--|-->",
+    "python": "#",
+}
+
+
+# ==============================================================================
+# general
+# ==============================================================================
+def get_indent(text):
+    indent = ""
+    result = re.search(INDENT_PATTERN, text)
+    if result:
+        indent = result.groups()[0]
+
+    return indent
+
 
 def convert(text, commenter="#", fill="-", align="<", width=80, empty=True):
-    converted = ""
     block_indent = None
     for each in text.split("\n"):
         if not each and not empty:
             continue
 
-        indent = ""
-        result = re.search(INDENT_PATTERN, each)
-        if result:
-            indent = result.groups()[0]
+        indent = get_indent(each)
         if block_indent is None:
             block_indent = indent
-       
-        tmp_width = width - (len(block_indent) + len(commenter) + 1)  
+
+        tmp_width = width - (len(block_indent) + len(commenter) + 1)
 
         each = each.replace(block_indent, "", 1)
         if each:
@@ -50,76 +67,48 @@ def convert(text, commenter="#", fill="-", align="<", width=80, empty=True):
             align=align,
             width=tmp_width,
         )
-        converted += line + "\n"
-    return converted
+        yield line
 
 
-def commentLine(line, symbol="-", size=80, align="<"):
-    line_len = len(line)
-    if line_len >= size:
-        return None
-    
-    # get current indent
-    indent_pattern = "^( *).+"
-    ws_count = 0
-    result = re.findall(indent_pattern, line)
-    if result:
-        ws_count = len(result[0])
-    
-    # remove lead/trailing whitespace characters
-    line = line.strip()
+def to_comment(text, commenter="#", fill="-", align="<", width=80, empty=True, add_headers=True):
+    block_indent = None
+    block_fill = fill
+    if "\n" in text or add_headers:
+        block_fill = ""
 
-    # create comment line
-    if align == "<":
-        size -= (line_len + 3)
-        fill = symbol * size
-        indent = ' ' * ws_count
-        return "{0}# {1} {2}".format(indent, line, fill)
-    elif align == ">":
-        size -= (line_len + 3)
-        fill = symbol * size
-        indent = ' ' * ws_count
-        return "{0}# {1} {2}".format(indent, fill, line)
-    elif align == "^":
-        size -= (line_len + 2)
-        l_count = int(size / 2) - 2
-        l_fill = symbol * l_count
-        r_count = int(size / 2)
-        r_fill = symbol * r_count
-        indent = ' ' * ws_count
-        return "{0}# {1} {2} {3}".format(indent, l_fill, line, r_fill)
+    comment = ""
+    for line in convert(text, commenter, block_fill, align, width, empty):
+        if block_indent is None:
+            block_indent = get_indent(line)
+        line += "\n"
+        comment += line
+
+    # add headers
+    if add_headers:
+        header = ""
+        for line in convert(block_indent, commenter, fill, align, width, empty=True):
+            header = line
+            break
+        comment = BLOCK.format(header=header, text=comment)
+
+    return comment
 
 
-def commentBlock(line, symbol="=", size=80, align="<"):
-    # get current indent
-    indent_pattern = "^( *).+"
-    ws_count = 0
-    result = re.findall(indent_pattern, line)
-    if result:
-        ws_count = len(result[0])
-
-    line = line.strip()
-
-    indent = ' ' * ws_count
-    fill = symbol * (size - 2 - ws_count)
-    block = "{0}# {1}\n".format(indent, fill)
-    block += "{0}# {1}\n".format(indent, line)
-    block += "{0}# {1}".format(indent, fill)
-    return block
-
-
+# ==============================================================================
+# Sublime command object
+# ==============================================================================
 class CommentfCommand(sublime_plugin.TextCommand):
-    def run(self, edit, style="block", symbol="=", align="<"):
+    def run(self, edit, style="block", commenter="#", fill="-", align="<", width=80):
         for region in self.view.sel():
             # get the current line text
             line = self.view.line(region)
             text = self.view.substr(line)
 
             # create the block comment
-            if style == "line":
-                comment = commentLine(text, symbol, 80, align)
-            elif style == "block":
-                comment = commentBlock(text, symbol, 80, align)
+            add_headers = False
+            if style == "block":
+                add_headers = True
+            comment = to_comment(text, commenter, fill, align, width, add_headers=add_headers)
 
             # replace current line
             self.view.erase(edit, line)
@@ -127,23 +116,17 @@ class CommentfCommand(sublime_plugin.TextCommand):
 
 
 if __name__ == "__main__":
-    foo = [
-    """
-        "color_scheme":
-            "Packages/Color Scheme - Default/Monokai.tmTheme",
+    foo = ["""        color_scheme":
+            "Packages/Color Scheme - Default/Monokai.tmThemeDefault/Monokai.tmThemeDefault/Monokai.tmTheme",
         "theme":
-            "Default.sublime-theme",
-        "font_size":
-            12""",
-    "help",
-    "",
-    "    test",
-    "    ",
+            "Default.sublime-theme", """,
+    "Packages/Color Scheme - Default/Monokai.tmThemeDefault/Monokai.tmThemeDefault/Monokai.tmTheme",
+    "  Packages/Color Scheme",
     ]
     for text in foo:
-        empty = True
-        if "\n" in text:
-            empty = False
-        print convert(text, align="<", empty=empty)
-        print convert(text, align="^", empty=empty)
-        print convert(text, align=">", empty=empty)
+        print "\n"
+        # print comment_line(text, commenter="#", fill="-", align="<", width=80, empty=True)
+        # print comment_block(text, commenter="#", fill="-", align="<", width=80, empty=True)
+        print to_comment(text, commenter="#", fill="-", align="<", width=80, empty=True, add_headers=False)
+        print to_comment(text, commenter="#", fill="-", align="<", width=80, empty=True, add_headers=True)
+        print "\n"
