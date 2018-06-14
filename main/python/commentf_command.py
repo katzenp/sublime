@@ -17,7 +17,7 @@ import sublime_plugin
 __VERSION__ = '1.0.1'
 
 LINE = "{indent}{commenter} {text:{fill}{align}{width}}"
-BLOCK = "{header}\n{text}{header}"
+BLOCK = "{header}\n{text}\n{header}"
 INDENT_PATTERN = "^(\s*)"
 COMMENTERS = {
     "json": "//",
@@ -67,6 +67,7 @@ def convert(text, commenter="#", fill="-", align="<", width=80, empty=True):
             align=align,
             width=tmp_width,
         )
+        line = re.sub("\s+$", "", line)
         yield line
 
 
@@ -76,12 +77,12 @@ def to_comment(text, commenter="#", fill="-", align="<", width=80, empty=True, a
     if "\n" in text or add_headers:
         block_fill = ""
 
-    comment = ""
+    comment = []
     for line in convert(text, commenter, block_fill, align, width, empty):
         if block_indent is None:
             block_indent = get_indent(line)
-        line += "\n"
-        comment += line
+        comment.append(line)
+    comment = "\n".join(comment)
 
     # add headers
     if add_headers:
@@ -114,19 +115,3 @@ class CommentfCommand(sublime_plugin.TextCommand):
             self.view.erase(edit, line)
             self.view.insert(edit, line.begin(), comment)
 
-
-if __name__ == "__main__":
-    foo = ["""        color_scheme":
-            "Packages/Color Scheme - Default/Monokai.tmThemeDefault/Monokai.tmThemeDefault/Monokai.tmTheme",
-        "theme":
-            "Default.sublime-theme", """,
-    "Packages/Color Scheme - Default/Monokai.tmThemeDefault/Monokai.tmThemeDefault/Monokai.tmTheme",
-    "  Packages/Color Scheme",
-    ]
-    for text in foo:
-        print "\n"
-        # print comment_line(text, commenter="#", fill="-", align="<", width=80, empty=True)
-        # print comment_block(text, commenter="#", fill="-", align="<", width=80, empty=True)
-        print to_comment(text, commenter="#", fill="-", align="<", width=80, empty=True, add_headers=False)
-        print to_comment(text, commenter="#", fill="-", align="<", width=80, empty=True, add_headers=True)
-        print "\n"
