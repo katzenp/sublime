@@ -3,14 +3,6 @@ pydoc_command.py
 
 Description:
     Plug in for generating docstrings for Python functions and methods
-
-Notes:
-    region.start() = cursor position
-    region.end() = end of highlighted/selected area
-
-    line = view.line(region) --> returns a region related to the current line
-    line.start() = begining of line
-    line.end() = end of line
 """
 # python libraries
 import os
@@ -23,7 +15,24 @@ import sublime_plugin
 # ==============================================================================
 # constants/globals
 # ==============================================================================
-__version__ = '2.0.0'
+# block comment start/end symbols
+SYMBOLS = {
+    "C": ("/*", "*/"),
+    "C#": ("/*", "*/"),
+    "C++": ("/*", "*/"),
+    "HTML": ("<!--", "-->"),
+    "Java": ("/*", "*/"),
+    "JSON": ("/*", "*/"),
+    "Python": ("\"\"\"", "\"\"\""),
+}
+
+# doc string formats
+DOC_MODUE = """{symbol_begin}
+{basename}
+
+Description:
+    Module description ...
+{symbol_begin}"""
 
 DOC_BUILD_UI = """
 {indent}\"\"\"
@@ -284,6 +293,18 @@ class PydocCommand(sublime_plugin.TextCommand):
     Auto generates docstrings for Python modules, functions, and methods
     based on the current line in your text file
     """
+    @property
+    def commenter(self):
+        """
+        Returns the appropriate block comment symbols based on the curent
+        language / syntax
+
+        :return: block comment symbols 
+        :rtype: string
+        """
+        syntax_file = self.view.settings().get('syntax')
+        syntax = os.path.basename(syntax_file).rsplit(".", 1)[0]
+        return COMMENTERS.get(syntax, "#")
 
     def run(self, edit, doc_style='sphinx'):
         """

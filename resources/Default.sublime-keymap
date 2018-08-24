@@ -1,7 +1,6 @@
 [
    { "keys": ["ctrl+enter"], "command": "pydoc" },
-   { "keys": ["ctrl+4"], "command": "commentf",  "args": {"style": "line", "commenter": "#","fill": "-", "align": "<", "width": 80} },
-   { "keys": ["ctrl+5"], "command": "commentf",  "args": {"style": "block", "commenter": "#","fill": "=", "align": "<", "width": 80} },
-   { "keys": ["ctrl+6"], "command": "commentf",  "args": {"style": "block", "commenter": "#","fill": "-", "align": "<", "width": 80} },
-   { "keys": ["f5"], "command": "refresh_folder_list"}
+   { "keys": ["ctrl+4"], "command": "commentf",  "args": {"style": "line", "fill": "-", "align": "<", "width": 80} },
+   { "keys": ["ctrl+5"], "command": "commentf",  "args": {"style": "block", "fill": "=", "align": "<", "width": 80} },
+   { "keys": ["ctrl+6"], "command": "commentf",  "args": {"style": "block", "fill": "-", "align": "<", "width": 80} },
 ]
