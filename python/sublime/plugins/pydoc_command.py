@@ -44,21 +44,21 @@ COPYRIGHT = """
 # docstring objects
 # ==============================================================================
 class BaseDoc(object):
-    def __init__(self, language, fill="", width=80):
+    def __init__(self, syntax, fill="", width=80):
         # formatting
         self._block_begin = ""
         self._block_end = ""
-        self.language = language
+        self.syntax = syntax
         self.fill = fill
         self.width = width
 
     @property
-    def language(self):
-        return self.__dict__["language"]
+    def syntax(self):
+        return self.__dict__["syntax"]
 
-    @language.setter
-    def language(self, value):
-        self.__dict__["language"] = value
+    @syntax.setter
+    def syntax(self, value):
+        self.__dict__["syntax"] = value
         self._block_begin, self._block_end = BLOCK_BEGIN_END.get(
             value, ("***", "***")
         )
@@ -103,7 +103,7 @@ class BaseDoc(object):
         # define doc template
         template  = "\n"
         template += "{indent}{block_begin:{fill}<{width}}\n"
-        template += "{indent}Description of callable < {name} > ...\n"
+        template += "{indent}Description of callable < {name} >\n"
         template += "{indent}{block_end:{fill}>{width}}"
 
         doc = template.format(
@@ -120,7 +120,7 @@ class BaseDoc(object):
     def get_class_doc(self, indent, name):
         template  = "\n"
         template += "{indent}{block_begin:{fill}<{width}}\n"
-        template += "{indent}Description of class < {name} > ...\n"
+        template += "{indent}Description of class < {name} >\n"
         template += "{indent}{block_end:{fill}>{width}}"
 
         doc = template.format(
@@ -135,9 +135,9 @@ class BaseDoc(object):
 
 
 class SphinxDoc(BaseDoc):
-    def __init__(self, language, fill="", width=80):
+    def __init__(self, syntax, fill="", width=80):
         super(SphinxDoc, self).__init__(
-            language=language, fill=fill, width=width
+            syntax=syntax, fill=fill, width=width
         )
 
     def get_module_doc(self, name):
@@ -146,7 +146,7 @@ class SphinxDoc(BaseDoc):
         template += "{name}\n"
         template += "\n"
         template += "Description:\n"
-        template += "    description of module < {name} > ...\n"
+        template += "    description of module < {name} >\n"
         template += "{block_end:{fill}>{width}}\n"
        
         doc = template.format(
@@ -162,7 +162,7 @@ class SphinxDoc(BaseDoc):
         # define doc template
         template  = "\n"
         template += "{indent}{block_begin:{fill}<{width}}\n"
-        template += "{indent}Description of callable < {name} > ...\n"
+        template += "{indent}Description of callable < {name} >\n"
         template += "\n"
         template += "{params}"
         template += "{indent}{block_end:{fill}>{width}}"
@@ -189,7 +189,7 @@ class SphinxDoc(BaseDoc):
     def get_class_doc(self, indent, name):
         template  = "\n"
         template += "{indent}{block_begin:{fill}<{width}}\n"
-        template += "{indent}Description of class < {name} > ...\n"
+        template += "{indent}Description of class < {name} >\n"
         template += "\n"
         template += "{indent}Public Attributes:\n"
         template += "{indent}    attr1:\n"
@@ -247,9 +247,9 @@ class PydocCommand(sublime_plugin.TextCommand):
 
         # get doc object
         if doc_style == "sphinx":
-            doc_obj = SphinxDoc(language=syntax, fill="", width=0)
+            doc_obj = SphinxDoc(syntax=syntax, fill="", width=0)
         else:
-            doc_obj = BaseDoc(language=syntax, fill="", width=0)
+            doc_obj = BaseDoc(syntax=syntax, fill="", width=0)
 
         # update view
         for region in self.view.sel():
