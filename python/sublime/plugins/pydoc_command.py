@@ -16,7 +16,7 @@ import sublime_plugin
 # constants/globals
 # ==============================================================================
 # block comment start/end symbols
-SYMBOLS = {
+BLOCK_BEGIN_END = {
     "C": ("/*", "*/"),
     "C#": ("/*", "*/"),
     "C++": ("/*", "*/"),
@@ -26,262 +26,183 @@ SYMBOLS = {
     "Python": ("\"\"\"", "\"\"\""),
 }
 
-# doc string formats
-DOC_MODUE = """{symbol_begin}
-{basename}
-
-Description:
-    Module description ...
-{symbol_begin}"""
-
-DOC_BUILD_UI = """
-{indent}\"\"\"
-{indent}Defines all ui elements
-{indent}
-{indent}:return: n/a
-{indent}:rtype: n/a
-{indent}\"\"\""""
-
-DOC_INITIALIZE_UI = """
-{indent}\"\"\"
-{indent}Initializes all ui elements to their default state
-{indent}
-{indent}:return: n/a
-{indent}:rtype: n/a
-{indent}\"\"\""""
-
-DOC_CONNECT_SIGNALS = """
-{indent}\"\"\"
-{indent}Defines all SIGNAL/SLOT connections
-{indent}
-{indent}:return: n/a
-{indent}:rtype: n/a
-{indent}\"\"\""""
+# copy right template
+COPYRIGHT = """
+# ==============================================================================
+#
+# Copyright (c) {year} {author}
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction.
+# 
+# ==============================================================================
+"""
 
 
 # ==============================================================================
-# Doc Classes
+# docstring objects
 # ==============================================================================
-class Docstringer(object):
-    """
-    Base class for all docstring generators
-    Generates docstrings for module, class, and function objects
-    from a given line of text.
-    """
-    PATTERN = '^( *)(\w+) (\w+)\((.*)\):'
+class BaseDoc(object):
+    def __init__(self, language, fill="", width=80):
+        # formatting
+        self._block_begin = ""
+        self._block_end = ""
+        self.language = language
+        self.fill = fill
+        self.width = width
 
-    def __init__(self, line, tab_size=4):
-        """
-        Constructor method
+    @property
+    def language(self):
+        return self.__dict__["language"]
 
-        :param line: line to create a docstring for, if necessary
-        :type line: string
-        :param tab_size: number of white space characters to use as a tab
-        :type tab_size: int
-        :return: N/A
-        :rtype: N/A
-        """
-        # get the line
-        self._line = line
+    @language.setter
+    def language(self, value):
+        self.__dict__["language"] = value
+        self._block_begin, self._block_end = BLOCK_BEGIN_END.get(
+            value, ("***", "***")
+        )
 
-        # determine tab string
-        self._tab_size = 4
-        if tab_size > 0 and not tab_size % 4:
-            self._tab_size = tab_size
-        self._tab = ' ' * self._tab_size
+    def parse_text(self, text):
+        data = {
+            "indent": "",
+            "keyword": "",
+            "name": "",
+            "parameters": []
+        }
 
-        # initialize line tokens
-        self._indent = 0
-        self._keyword = None
-        self._obj_name = None
-        self._parameters = None
+        # extract signature components
+        text = text.replace("\n", "")   
+        results = re.search("^(\s*)(\w+) (\w+)\((.*)\)", text)
+        if results:
+            data["indent"] = results.groups()[0]
+            data["keyword"] = results.groups()[1]
+            data["name"] = results.groups()[2]
+            # extract parameter names
+            if results.groups()[3]:
+                csv = re.sub("\s|=\w+", "", results.groups()[3])
+                data["parameters"] = csv.split(",")
+        return data
 
-        # analyze line
-        self.__analyze()
+    def get_module_doc(self, name):
+        # define doc template
+        template  = "{block_begin:{fill}<{width}}\n"
+        template += "{name}\n"
+        template += "{block_end:{fill}>{width}}\n"
+       
+        doc = template.format(
+            block_begin=self._block_begin,
+            fill=self.fill,
+            width=self.width,
+            name=name,
+            block_end=self._block_end
+        )
+        return doc
 
-    def __analyze(self):
-        """
-        Attempts to parse function/class header data from `_line`
-        and store the results in the following instance attributes:
-            _indent, _keyword, _obj_name, _parameters
+    def get_func_doc(self, indent, name, parameters=None):
+        # define doc template
+        template  = "\n"
+        template += "{indent}{block_begin:{fill}<{width}}\n"
+        template += "{indent}Description of callable < {name} > ...\n"
+        template += "{indent}{block_end:{fill}>{width}}"
 
-        :return: N/A
-        :rtype: N/A
-        """
-        result = re.search(Docstringer.PATTERN, self._line)
-        if result:
-            self._indent = result.groups()[0]
-            self._indent += self._tab
-            self._keyword = result.groups()[1]
-            self._obj_name = result.groups()[2]
-            self._parameters = result.groups()[3]
-
-    def module_doc(self, filename=''):
-        """
-        Creates a module docstring that includes the given filename
-        if one is provided
-
-        :param filename: the name of the current file
-        :type filename: string
-        :return: the module docstring
-        :rtype: string
-        """
-        if filename:
-            if os.sep in filename:
-                filename = os.path.basename(filename)
-
-        # construct docstring
-        if re.search("^\'{3}|^\"{3}", self._line):
-            return ''
-
-        doc = '\"\"\"\n'
-        if self._line.startswith('#!'):
-            doc = '\n\"\"\"\n'
-        doc += '{0}\n\n'.format(filename)
-        doc += 'Description:\n'
-        doc += '\tModule description\n'
-        doc += '\"\"\"'
+        doc = template.format(
+            indent=indent,
+            name=name,
+            block_begin=self._block_begin,
+            fill=self.fill,
+            width=self.width,
+            block_end=self._block_end
+        )
 
         return doc
 
-    def func_doc(self):
-        """
-        Creates a docstring for a callable object(function, method)
-        that includes parameter names
+    def get_class_doc(self, indent, name):
+        template  = "\n"
+        template += "{indent}{block_begin:{fill}<{width}}\n"
+        template += "{indent}Description of class < {name} > ...\n"
+        template += "{indent}{block_end:{fill}>{width}}"
 
-        :return: docstring for a callable object
-        :rtype: string
-        """
-        doc = ''
-        if self._keyword == 'def':
-            # construct description template
-            doc = '\n{0}"""\n'.format(self._indent)
-            doc += '{0}Description of callable <{1}>\n\n'.format(self._indent, self._obj_name)
-
-            # construct parameters template
-            if self._parameters:
-                doc += '{0}Parameters\n'.format(self._indent)
-                doc += '{0}----------\n'.format(self._indent)
-                self._parameters = self._parameters.split(',')
-                for p in self._parameters:
-                    if p == 'self':
-                        continue
-                    p_name = p.split('=')[0]
-                    p_name = p_name.strip()
-                    doc += '{0}{1}:\n'.format(self._indent, p_name)
-
-            # construct returns template
-            doc += '\n{0}Returns\n'.format(self._indent)
-            doc += '{0}-------\nn'.format(self._indent)
-            doc += '{0}value\n'.format(self._indent)
-            doc += '{0}"""'.format(self._indent)
-        return doc
-
-    def class_doc(self):
-        """
-        Creates a docstring for a class object
-
-        :return: docstring for a class object
-        :rtype: string
-        """
-        doc = ''
-        if self._keyword == 'class':
-            obj_name = repr(self._obj_name)
-            doc = '\n{0}""" Description of <class {1}> """\n'.format(self._indent, obj_name)
-        return doc
-
-    def get_doc(self):
-        """
-        Creates a docstring for a class or callable object based on the
-        Python keyword extracted by the __analyze() method
-
-        :return: docstring for a callable object
-        :rtype: string
-        """
-        doc = ''
-        if self._keyword == 'def':
-            doc = self.func_doc()
-        elif self._keyword == 'class':
-            doc = self.class_doc()
-
+        doc = template.format(
+            indent=indent,
+            name=name,
+            block_begin=self._block_begin,
+            fill=self.fill,
+            width=self.width,
+            block_end=self._block_end
+        )
         return doc
 
 
-class Sphinx_Docstringer(Docstringer):
-    """
-    Generates Sphinx style docstrings for module, class, and function objects
-    from a given line of text
-    """
+class SphinxDoc(BaseDoc):
+    def __init__(self, language, fill="", width=80):
+        super(SphinxDoc, self).__init__(
+            language=language, fill=fill, width=width
+        )
 
-    def __init__(self, line, tab_size=4):
-        """
-        Constructor method
-
-        :param line: line to create a docstring for, if necessary
-        :type line: string
-        :param tab_size: number of white space characters to use as a tab
-        :type tab_size: int
-        :return: N/A
-        :rtype: N/A
-        """
-        super(Sphinx_Docstringer, self).__init__(line, tab_size)
-
-    def func_doc(self):
-        """
-        Creates a Sphinx style docstring for a callable object(function, method)
-        that includes parameter names
-
-        :return: docstring for a callable object
-        :rtype: string
-        """
-        # validate
-        if not self._keyword == 'def':
-            return ""
-
-        # special cases
-        if self._obj_name == "_build_ui":
-            return DOC_BUILD_UI.format(indent=self._indent)
-        if self._obj_name == "_initialize_ui":
-            return DOC_INITIALIZE_UI.format(indent=self._indent)
-        if self._obj_name == "_connect_signals":
-            return DOC_CONNECT_SIGNALS.format(indent=self._indent)
-
-        # standard cases
-        doc = "\n{0}\"\"\"\n".format(self._indent)
-        doc += "{0}Description of callable <{1}>\n\n".format(self._indent, self._obj_name)
-
-        # construct parameters template
-        if self._parameters:
-            self._parameters = self._parameters.split(",")
-            for p in self._parameters:
-                if p == "self":
-                    continue
-                p_name = p.split("=")[0]
-                p_name = p_name.strip()
-                doc += "{0}:param {1}:\n".format(self._indent, p_name)
-                doc += "{0}:type {1}:\n".format(self._indent, p_name)
-
-        # construct returns template
-        doc += '{0}:return:\n'.format(self._indent)
-        doc += '{0}:rtype:\n'.format(self._indent)
-        doc += '{0}\"\"\"'.format(self._indent)
+    def get_module_doc(self, name):
+        # define doc template
+        template  = "{block_begin:{fill}<{width}}\n"
+        template += "{name}\n"
+        template += "\n"
+        template += "Description:\n"
+        template += "    description of module < {name} > ...\n"
+        template += "{block_end:{fill}>{width}}\n"
+       
+        doc = template.format(
+            block_begin=self._block_begin,
+            fill=self.fill,
+            width=self.width,
+            name=name,
+            block_end=self._block_end
+        )
         return doc
 
-    def class_doc(self):
-        """
-        Creates a Sphinx style docstring for a class object
+    def get_func_doc(self, indent, name, parameters):
+        # define doc template
+        template  = "\n"
+        template += "{indent}{block_begin:{fill}<{width}}\n"
+        template += "{indent}Description of callable < {name} > ...\n"
+        template += "\n"
+        template += "{params}"
+        template += "{indent}{block_end:{fill}>{width}}"
 
-        :return: docstring for a class object
-        :rtype: string
-        """
-        doc = ''
-        if self._keyword == 'class':
-            doc = '\n{0}"""\n'.format(self._indent)
-            obj_name = repr(self._obj_name)
-            doc +='{0}Description of <class {1}>\n\n'.format(self._indent, obj_name)
-            doc +='{0}Public Attributes:\n'.format(self._indent)
-            doc +='{0}{1}attr1:\n'.format(self._indent, self._tab)
-            doc +='{0}"""'.format(self._indent)
+        params = ""
+        for p in parameters:
+            params += "{indent}:param {p}:\n".format(indent=indent, p=p)
+            params += "{indent}:type {p}:\n".format(indent=indent, p=p)
+        params += "{indent}:return:\n".format(indent=indent)
+        params += "{indent}:rtype:\n".format(indent=indent)
+
+        doc = template.format(
+            indent=indent,
+            name=name,
+            params=params,
+            block_begin=self._block_begin,
+            fill=self.fill,
+            width=self.width,
+            block_end=self._block_end
+        )
+
+        return doc
+
+    def get_class_doc(self, indent, name):
+        template  = "\n"
+        template += "{indent}{block_begin:{fill}<{width}}\n"
+        template += "{indent}Description of class < {name} > ...\n"
+        template += "\n"
+        template += "{indent}Public Attributes:\n"
+        template += "{indent}    attr1:\n"
+        template += "{indent}{block_end:{fill}>{width}}"
+
+        doc = template.format(
+            indent=indent,
+            name=name,
+            block_begin=self._block_begin,
+            fill=self.fill,
+            width=self.width,
+            block_end=self._block_end
+        )
         return doc
 
 
@@ -293,20 +214,21 @@ class PydocCommand(sublime_plugin.TextCommand):
     Auto generates docstrings for Python modules, functions, and methods
     based on the current line in your text file
     """
-    @property
-    def commenter(self):
-        """
-        Returns the appropriate block comment symbols based on the curent
-        language / syntax
+    def _get_signature(self, region):
+            # get the current line text
+            line = self.view.line(region)
+            text = self.view.substr(line)
+            while True:
+                if re.search('^\s*def |^\s*class ', text):
+                    break
+                if region.a == 0:
+                    break
+                region.a -= 1
+                line = self.view.line(region)
+                text = self.view.substr(line)
+            return text.replace("\n", "")
 
-        :return: block comment symbols 
-        :rtype: string
-        """
-        syntax_file = self.view.settings().get('syntax')
-        syntax = os.path.basename(syntax_file).rsplit(".", 1)[0]
-        return COMMENTERS.get(syntax, "#")
-
-    def run(self, edit, doc_style='sphinx'):
+    def run(self, edit, doc_style="sphinx"):
         """
         Main plugin command
 
@@ -317,28 +239,44 @@ class PydocCommand(sublime_plugin.TextCommand):
         :return: N/A
         :rtype: N/A
         """
-        # get the current tab size
-        cur_tab_size = int(self.view.settings().get('tab_size', 4))
+        # get current syntax
+        try:
+            syntax = re.split("[\\/.]", self.view.settings().get("syntax"))[-2]
+        except Exception:
+            syntax = "Python"
 
+        # get doc object
+        if doc_style == "sphinx":
+            doc_obj = SphinxDoc(language=syntax, fill="", width=0)
+        else:
+            doc_obj = BaseDoc(language=syntax, fill="", width=0)
+
+        # update view
         for region in self.view.sel():
             # get the current line text
             line = self.view.line(region)
             text = self.view.substr(line)
-
-            # get doc object
-            if doc_style == 'sphinx':
-                doc_obj = Sphinx_Docstringer(text, cur_tab_size)
-            else:
-                doc_obj = Docstringer(text, cur_tab_size)
-
+    
             # get doc string
-            doc = ''
+            doc = ""
+            pos = line.end()
             if line.begin() == 0:
-                cur_file = self.view.file_name()
-                doc = doc_obj.module_doc(cur_file)
+                file_path = self.view.file_name()
+                file_name = os.path.basename(file_path)
+                doc = doc_obj.get_module_doc(file_name)
+                if text:
+                    pos += 1
             else:
-                doc = doc_obj.get_doc()
-
-            # add docstring
+                text = self._get_signature(region)
+                tokens = doc_obj.parse_text(text)
+                indent = "    "
+                if tokens["indent"]:
+                    indent = tokens["indent"] * 2
+                if tokens["keyword"] == "def":
+                    doc = doc_obj.get_func_doc(indent, tokens["name"], tokens["parameters"])
+                elif tokens["keyword"] == "class":
+                    doc = doc_obj.get_class_doc(indent, tokens["name"])
+            
+            # insert doc string
             if doc:
-                self.view.insert(edit, line.end(), doc)
+                self.view.insert(edit, pos, doc)
