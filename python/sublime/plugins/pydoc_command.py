@@ -5,6 +5,7 @@ Description:
     Plug in for generating docstrings for Python functions and methods
 """
 # python libraries
+import datetime
 import os
 import re
 
@@ -27,6 +28,8 @@ BLOCK_BEGIN_END = {
 }
 
 # copy right template
+AUTHOR = "***"
+YEAR = datetime.datetime.today().year
 COPYRIGHT = """
 # ==============================================================================
 #
@@ -37,7 +40,7 @@ COPYRIGHT = """
 # in the Software without restriction.
 # 
 # ==============================================================================
-"""
+""".format(year=YEAR, author=AUTHOR)
 
 
 # ==============================================================================
@@ -84,9 +87,12 @@ class BaseDoc(object):
                 data["parameters"] = csv.split(",")
         return data
 
-    def get_module_doc(self, name):
+    def get_module_doc(self, name, copyright=True):
         # define doc template
-        template  = "{block_begin:{fill}<{width}}\n"
+        template = ""
+        if copyright:
+            template += COPYRIGHT
+        template += "{block_begin:{fill}<{width}}\n"
         template += "{name}\n"
         template += "{block_end:{fill}>{width}}\n"
        
@@ -140,9 +146,12 @@ class SphinxDoc(BaseDoc):
             syntax=syntax, fill=fill, width=width
         )
 
-    def get_module_doc(self, name):
+    def get_module_doc(self, name, copyright=True):
         # define doc template
-        template  = "{block_begin:{fill}<{width}}\n"
+        template = ""
+        if copyright:
+            template += COPYRIGHT
+        template += "{block_begin:{fill}<{width}}\n"
         template += "{name}\n"
         template += "\n"
         template += "Description:\n"
