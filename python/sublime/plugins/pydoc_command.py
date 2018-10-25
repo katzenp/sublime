@@ -237,7 +237,7 @@ class PydocCommand(sublime_plugin.TextCommand):
                 text = self.view.substr(line)
             return text.replace("\n", "")
 
-    def run(self, edit, doc_style="sphinx"):
+    def run(self, edit, doc_style="sphinx", copyright=True):
         """
         Main plugin command
 
@@ -245,8 +245,10 @@ class PydocCommand(sublime_plugin.TextCommand):
         :type edit: instance of class <class 'Sublime.edit'>
         :param doc_style: the docstring style
         :type doc_style: string
-        :return: N/A
-        :rtype: N/A
+        :param copyright: option to add copyrighting to module documentation
+        :type copyright: bool
+        :return: n/a
+        :rtype: n/a
         """
         # get current syntax
         try:
@@ -272,7 +274,7 @@ class PydocCommand(sublime_plugin.TextCommand):
             if line.begin() == 0:
                 file_path = self.view.file_name()
                 file_name = os.path.basename(file_path)
-                doc = doc_obj.get_module_doc(file_name)
+                doc = doc_obj.get_module_doc(file_name, copyright)
                 if text:
                     pos += 1
             else:
