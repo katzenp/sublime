@@ -1,6 +1,43 @@
 [
-   { "keys": ["ctrl+enter"], "command": "pydoc", "args": {"doc_style": "sphinx", "copyright": false} },
-   { "keys": ["ctrl+4"], "command": "commentf",  "args": {"style": "line", "fill": "-", "align": "<", "width": 80} },
-   { "keys": ["ctrl+5"], "command": "commentf",  "args": {"style": "block", "fill": "=", "align": "<", "width": 80} },
-   { "keys": ["ctrl+6"], "command": "commentf",  "args": {"style": "block", "fill": "-", "align": "<", "width": 80} },
+   {
+        "keys": ["ctrl+enter"],
+        "command": "pydoc",
+        "args": {
+            "doc_style": "sphinx",
+            "copyright": false,
+            "copyright_private": false,
+            "company": "Paul Katzen"
+        }
+    },
+   {
+        "keys": ["ctrl+4"],
+        "command": "commentf",
+        "args": {
+            "style": "line",
+            "fill": "-",
+            "align": "<",
+            "width": 80
+        }
+    },
+   {
+        "keys": ["ctrl+5"],
+        "command": "commentf",
+        "args": {
+            "style": "block",
+            "fill": "=",
+            "align": "<",
+            "width": 80
+        }
+    },
+   {
+        "keys": ["ctrl+6"],
+        "command": "commentf",
+        "args": {
+            "style": "block",
+            "fill": "-",
+            "align": "<",
+            "width": 80
+        }
+    },
 ]
+
